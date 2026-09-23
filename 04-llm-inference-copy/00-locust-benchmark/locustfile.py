@@ -58,6 +58,41 @@ def _pick_max_tokens() -> int:
 # ---------------------------------------------------------------------------
 
 # TODO-001 -> reset all these to use the new models (Qwen)
+
+MODELS = [
+        {
+            "name": "Qwen3.6",
+            "host": "https://127.0.0.1/vllm",
+            "endpoint": "/v1/chat/completions",
+            "headers": {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {JWT_TOKEN}",
+            },
+            "payload": lambda prompt: {
+                "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": _pick_max_tokens(),
+            },
+            "weight": 1,
+        },
+        {
+            "name": "Qwen3.6",
+            "host": "https://127.0.0.1/vllm",
+            "endpoint": "/v1/chat/completions",
+            "headers": {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {JWT_TOKEN}",
+            },
+            "payload": lambda prompt: {
+                "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": _pick_max_tokens(),
+            },
+            "weight": 1,
+        },
+    ]
+        
+'''
 MODELS = [
 
     {
@@ -106,6 +141,7 @@ MODELS = [
         "weight": 1,
     },
 ]
+'''
 
 # ---------------------------------------------------------------------------
 # Select the active model for this run (mandatory)

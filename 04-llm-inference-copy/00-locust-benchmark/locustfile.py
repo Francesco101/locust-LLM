@@ -221,7 +221,6 @@ log = logging.getLogger(__name__)
 
 EXPERIMENT_ID: str = ""
 
-# TODO-011 -> What do these wrappers to exactly ???
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):

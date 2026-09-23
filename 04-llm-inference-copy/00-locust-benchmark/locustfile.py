@@ -76,7 +76,7 @@ MODELS = [
             "weight": 1,
         },
         {
-            "name": "Qwen3.6",
+            "name": "Qwen3.8",
             "host": "https://127.0.0.1/vllm",
             "endpoint": "/v1/chat/completions",
             "headers": {
@@ -84,7 +84,7 @@ MODELS = [
                 "Authorization": f"Bearer {JWT_TOKEN}",
             },
             "payload": lambda prompt: {
-                "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+                "model": "Qwen/Qwen3.8-27B-FP8",
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": _pick_max_tokens(),
             },

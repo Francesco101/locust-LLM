@@ -14,6 +14,7 @@ Run example (one model, headless):
   MODEL_NAME="Llama-4-Scout-17B" locust -f locustfile.py --headless -u 4 -r 1 --run-time 5m
 """
 
+from locust import HttpUser, between, events, task
 import logging
 import os
 import random
@@ -22,13 +23,16 @@ import uuid as _uuid
 import urllib3
 
 import requests as _requests
-from locust import HttpUser, between, events, task
+#from locust import HttpUser, between, events, task
+# CHANGE (TODO-999: RM THIS) -> I moved the importing from locust before importing urllib3 (otherwise I get max recursion errors while importing)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ---------------------------------------------------------------------------
 # Config from environment
 # ---------------------------------------------------------------------------
+
+# TODO-000 -> set all environment variables needed
 
 JWT_TOKEN = os.getenv(
     "JWT_TOKEN")
@@ -53,6 +57,7 @@ def _pick_max_tokens() -> int:
 # Model catalogue
 # ---------------------------------------------------------------------------
 
+# TODO-001 -> reset all these to use the new models (Qwen)
 MODELS = [
 
     {
@@ -163,6 +168,8 @@ PROMPTS = _load_prompts(PROMPT_FILE)
 # Logging
 # ---------------------------------------------------------------------------
 
+# TODO-010 -> What is happening here ???
+
 logging.basicConfig(
     filename="llm_errors.log",
     level=logging.ERROR,
@@ -178,6 +185,7 @@ log = logging.getLogger(__name__)
 
 EXPERIMENT_ID: str = ""
 
+# TODO-011 -> What do these wrappers to exactly ???
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):

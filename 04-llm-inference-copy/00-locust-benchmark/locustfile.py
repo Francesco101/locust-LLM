@@ -24,7 +24,7 @@ import urllib3
 
 import requests as _requests
 #from locust import HttpUser, between, events, task
-# CHANGE (TODO-999: RM THIS) -> I moved the importing from locust before importing urllib3 (otherwise I get max recursion errors while importing)
+# CHANGE (TODO-999: RM THIS COMMENT) -> I moved the importing from locust before importing urllib3 (otherwise I get max recursion errors while importing)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -62,7 +62,7 @@ def _pick_max_tokens() -> int:
 MODELS = [
         {
             "name": "Qwen3.6",
-            "host": "https://127.0.0.1/vllm",
+            "host": "https://orfeo-llm.areasciencepark.it/vllm",
             "endpoint": "/v1/chat/completions",
             "headers": {
                 "Content-Type": "application/json",
@@ -77,7 +77,7 @@ MODELS = [
         },
         {
             "name": "Qwen3.8",
-            "host": "https://127.0.0.1/vllm",
+            "host": "https://orfeo-llm.areasciencepark.it/vllm",
             "endpoint": "/v1/chat/completions",
             "headers": {
                 "Content-Type": "application/json",

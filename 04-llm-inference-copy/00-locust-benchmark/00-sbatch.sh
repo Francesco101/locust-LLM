@@ -18,17 +18,16 @@
 SCRIPT_DIR="$SLURM_SUBMIT_DIR"
 echo "If present, source a virtual env ! Remember to install requirements.txt provided in the repository root"
 MODELS=(
-    "GPT-OSS-120B"
-    "Qwen3-VL-235B-Thinking"
-    "Llama-4-Scout-17B"
+    "Qwen3.6"
+    "Qwen3.8"
 )
 
 # ---------------------------------------------------------------------------
 # Locust benchmark parameters
 # ---------------------------------------------------------------------------
 USERS=20          # concurrent virtual users
-SPAWN_RATE=10     # users spawned per second
-RUN_TIME="15m"   # how long to run each model
+SPAWN_RATE=4   #TODO: this was set to 10 initially  # users spawned per second
+RUN_TIME="3m"   # how long to run each model
 
 # ---------------------------------------------------------------------------
 # Ensure log directory exists

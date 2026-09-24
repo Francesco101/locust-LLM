@@ -15,7 +15,7 @@
 #SBATCH --mem=128G
 
 
-SCRIPT_DIR="$SLURM_SUBMIT_DIR"
+SCRIPT_DIR="$SLURM_SUBMIT_DIR"  # "."
 echo "If present, source a virtual env ! Remember to install requirements.txt provided in the repository root"
 MODELS=(
     "Qwen3.6"
@@ -25,9 +25,9 @@ MODELS=(
 # ---------------------------------------------------------------------------
 # Locust benchmark parameters
 # ---------------------------------------------------------------------------
-USERS=20          # concurrent virtual users
-SPAWN_RATE=4   #TODO: this was set to 10 initially  # users spawned per second
-RUN_TIME="3m"   # how long to run each model
+USERS=40         # concurrent virtual users
+SPAWN_RATE=20    # users spawned per second
+RUN_TIME="12m"   # how long to run each model
 
 # ---------------------------------------------------------------------------
 # Ensure log directory exists
@@ -38,29 +38,41 @@ echo "Job $SLURM_JOB_ID started on $SLURM_JOB_NODELIST"
 echo "Will benchmark ${#MODELS[@]} model(s) sequentially: ${MODELS[*]}"
 echo ""
 
-for MODEL_NAME in "${MODELS[@]}"; do
-    export MODEL_NAME
+gen_toks=(250 500 1000 1500 3000 5000 8000)
+toks_var=0.1
 
-    echo "============================================="
-    echo "SLURM job       : $SLURM_JOB_ID"
-    echo "Node(s)         : $SLURM_JOB_NODELIST"
-    echo "Model           : $MODEL_NAME"
-    echo "Users / Rate    : $USERS / $SPAWN_RATE"
-    echo "Run time        : $RUN_TIME"
-    echo "============================================="
+for toks in "${gen_toks[@]}"; do
+    TOKEN_MIN=$(awk -v t="$toks" -v v="$toks_var" 'BEGIN {printf "%d", t*(1-v)}')
+    TOKEN_MAX=$(awk -v t="$toks" -v v="$toks_var" 'BEGIN {printf "%d", t*(1+v)}')
+    export TOKEN_MIN TOKEN_MAX
 
-    locust \
-        -f "$SCRIPT_DIR/locustfile.py" \
-        --headless \
-        --users "$USERS" \
-        --spawn-rate "$SPAWN_RATE" \
-        --run-time "$RUN_TIME" \
-        --csv "$SCRIPT_DIR/logs/stats_${MODEL_NAME}_${SLURM_JOB_ID}" \
-        --html "$SCRIPT_DIR/logs/report_${MODEL_NAME}_${SLURM_JOB_ID}.html"
+    for MODEL_NAME in "${MODELS[@]}"; do
+        export MODEL_NAME
+        echo "============================================="
+        echo "SLURM job       : $SLURM_JOB_ID"
+        echo "Node(s)         : $SLURM_JOB_NODELIST"
+        echo "Model           : $MODEL_NAME"
+        echo "Users / Rate    : $USERS / $SPAWN_RATE"
+        echo "Run time        : $RUN_TIME"
+        echo "============================================="
 
-    RC=$?
-    echo "Benchmark finished for $MODEL_NAME (exit code: $RC)"
-    echo ""
+        locust \
+            -f "$SCRIPT_DIR/locustfile.py" \
+            --headless \
+            --users "$USERS" \
+            --spawn-rate "$SPAWN_RATE" \
+            --run-time "$RUN_TIME" \
+            --csv "$SCRIPT_DIR/logs/stats_${MODEL_NAME}_t${toks}_${SLURM_JOB_ID}" \
+            --html "$SCRIPT_DIR/logs/report_${MODEL_NAME}_t${toks}_${SLURM_JOB_ID}.html"
+
+        RC=$?
+        echo "Benchmark finished for $MODEL_NAME (exit code: $RC)"
+        echo ""
+        echo "  -> model change, idle 120s - cooldown"
+        sleep 120
+    done
+    echo "  -> max tokens change, idle 180s - cooldown"
+    sleep 180
 done
 
 echo "All models done."

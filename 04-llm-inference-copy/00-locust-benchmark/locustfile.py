@@ -42,15 +42,24 @@ SLURM_JOB_ID      = os.getenv("SLURM_JOB_ID",      "local")
 SLURM_JOB_NODELIST= os.getenv("SLURM_JOB_NODELIST","localhost")
 PROMPT_FILE       = os.getenv("PROMPT_FILE",        "prompt.txt")
 
+'''
 # Benchmark token caps are randomized per request within this range.
 TOKEN_MIN = 1000
 TOKEN_MAX = 2000
+'''
+TOKEN_MIN = int(os.getenv("TOKEN_MIN", 1000))
+TOKEN_MAX = int(os.getenv("TOKEN_MAX", 2000))
 
 if TOKEN_MIN > TOKEN_MAX:
     raise ValueError(f"Invalid token range: TOKEN_MIN ({TOKEN_MIN}) > TOKEN_MAX ({TOKEN_MAX})")
 
-
+# I want to run all models through the same exact sequence
+random.seed(101)
+REQ_SEQ = [random.randint(TOKEN_MIN, TOKEN_MAX) for j in range(99999)] 
+PARSE = 0   # A variable to parse through the REQ_SEQ, here it is-initialized to 0 in between models' benchmarks
 def _pick_max_tokens() -> int:
+    global PARSE
+    PARSE += 1
     return random.randint(TOKEN_MIN, TOKEN_MAX)
 
 # ---------------------------------------------------------------------------
@@ -91,57 +100,6 @@ MODELS = [
             "weight": 1,
         },
     ]
-        
-'''
-MODELS = [
-
-    {
-        "name": "GPT-OSS-120B",
-        "host": "https://127.0.0.1/vllm",
-        "endpoint": "/v1/chat/completions",
-        "headers": {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {JWT_TOKEN}",
-        },
-        "payload": lambda prompt: {
-            "model": "openai/gpt-oss-120b",
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": _pick_max_tokens(),
-        },
-        "weight": 1,
-    },
-    {
-        "name": "Qwen3-VL-235B-Thinking",
-        "host": "https://127.0.0.1/vllm",
-        "endpoint": "/v1/chat/completions",
-        "headers": {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {JWT_TOKEN}",
-        },
-        "payload": lambda prompt: {
-            "model": "Qwen/Qwen3-VL-235B-A22B-Thinking-FP8",
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": _pick_max_tokens(),
-        },
-        "weight": 1,
-    },
-    {
-        "name": "Llama-4-Scout-17B",
-        "host": "https://127.0.0.1/vllm",
-        "endpoint": "/v1/chat/completions",
-        "headers": {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {JWT_TOKEN}",
-        },
-        "payload": lambda prompt: {
-            "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": _pick_max_tokens(),
-        },
-        "weight": 1,
-    },
-]
-'''
 
 # ---------------------------------------------------------------------------
 # Select the active model for this run (mandatory)

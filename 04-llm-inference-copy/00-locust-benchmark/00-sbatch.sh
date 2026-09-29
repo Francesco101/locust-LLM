@@ -14,8 +14,10 @@
 #SBATCH --partition=GENOA
 #SBATCH --mem=128G
 
-
-SCRIPT_DIR="$SLURM_SUBMIT_DIR"  # "."
+# TODO: RIMUOVI, DEFINISCO QUA SLURM_SUBMIT_DIR
+SLURM_SUBMIT_DIR="."
+export SLURM_SUBMIT_DIR
+SCRIPT_DIR="$SLURM_SUBMIT_DIR"
 echo "If present, source a virtual env ! Remember to install requirements.txt provided in the repository root"
 MODELS=(
     "Qwen3.6"
@@ -25,9 +27,9 @@ MODELS=(
 # ---------------------------------------------------------------------------
 # Locust benchmark parameters
 # ---------------------------------------------------------------------------
-USERS=40         # concurrent virtual users
-SPAWN_RATE=20    # users spawned per second
-RUN_TIME="12m"   # how long to run each model
+USERS=20         # concurrent virtual users
+SPAWN_RATE=1    # users spawned per second
+RUN_TIME="15m"   # how long to run each model
 
 # ---------------------------------------------------------------------------
 # Ensure log directory exists
@@ -38,13 +40,13 @@ echo "Job $SLURM_JOB_ID started on $SLURM_JOB_NODELIST"
 echo "Will benchmark ${#MODELS[@]} model(s) sequentially: ${MODELS[*]}"
 echo ""
 
-gen_toks=(250 500 1000 1500 3000 5000 8000)
+gen_toks=(250 500 1000 2000 4000 8000)
 toks_var=0.1
 
-for toks in "${gen_toks[@]}"; do
-    TOKEN_MIN=$(awk -v t="$toks" -v v="$toks_var" 'BEGIN {printf "%d", t*(1-v)}')
-    TOKEN_MAX=$(awk -v t="$toks" -v v="$toks_var" 'BEGIN {printf "%d", t*(1+v)}')
-    export TOKEN_MIN TOKEN_MAX
+for TOKS in "${gen_toks[@]}"; do
+    TOKEN_MIN=$(awk -v t="$TOKS" -v v="$toks_var" 'BEGIN {printf "%d", t*(1-v)}')
+    TOKEN_MAX=$(awk -v t="$TOKS" -v v="$toks_var" 'BEGIN {printf "%d", t*(1+v)}')
+    export TOKEN_MIN TOKEN_MAX TOKS
 
     for MODEL_NAME in "${MODELS[@]}"; do
         export MODEL_NAME
@@ -62,11 +64,11 @@ for toks in "${gen_toks[@]}"; do
             --users "$USERS" \
             --spawn-rate "$SPAWN_RATE" \
             --run-time "$RUN_TIME" \
-            --csv "$SCRIPT_DIR/logs/stats_${MODEL_NAME}_t${toks}_${SLURM_JOB_ID}" \
-            --html "$SCRIPT_DIR/logs/report_${MODEL_NAME}_t${toks}_${SLURM_JOB_ID}.html"
+            --csv "$SCRIPT_DIR/logs/stats_${MODEL_NAME}_t${TOKS}_${SLURM_JOB_ID}" \
+            --html "$SCRIPT_DIR/logs/report_${MODEL_NAME}_t${TOKS}_${SLURM_JOB_ID}.html"
 
         RC=$?
-        echo "Benchmark finished for $MODEL_NAME (exit code: $RC)"
+        echo "Benchmark finished for $MODEL_NAME @ $TOKS (exit code: $RC)"
         echo ""
         echo "  -> model change, idle 120s - cooldown"
         sleep 120

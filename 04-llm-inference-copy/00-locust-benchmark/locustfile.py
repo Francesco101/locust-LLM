@@ -21,12 +21,27 @@ import random
 import uuid as _uuid
 
 import urllib3
+import time
+#------------------------ # TODO: va bene ?
+import gevent.lock
+_write_lock = gevent.lock.Semaphore(1)   # non voglio problemi di concurrency
+#------------------------
+
 
 import requests as _requests
 #from locust import HttpUser, between, events, task
 # CHANGE (TODO-999: RM THIS COMMENT) -> I moved the importing from locust before importing urllib3 (otherwise I get max recursion errors while importing)
 
+
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# ---------------------------------------------------------------------------------------
+# TODO
+# ---------------------------------------------------------------------------------------
+LLM_STATS_FILE = lambda model_name,toks: f"./logs/llm_stats_{model_name}_t{toks}.csv"
+
+
 
 # ---------------------------------------------------------------------------
 # Config from environment
@@ -41,6 +56,11 @@ MODEL_NAME        = os.getenv("MODEL_NAME")          # REQUIRED
 SLURM_JOB_ID      = os.getenv("SLURM_JOB_ID",      "local")
 SLURM_JOB_NODELIST= os.getenv("SLURM_JOB_NODELIST","localhost")
 PROMPT_FILE       = os.getenv("PROMPT_FILE",        "prompt.txt")
+
+TOKS = os.getenv("TOKS")    # For multiple token-ranges runs
+with open(LLM_STATS_FILE(MODEL_NAME, TOKS), "w") as file:
+    file.write("t_start,t_end,prompt_tokens,completion_tokens,total_tokens\n")
+
 
 '''
 # Benchmark token caps are randomized per request within this range.
@@ -227,6 +247,7 @@ class MultiModelUser(HttpUser):
         payload = ACTIVE_MODEL["payload"](prompt)
         request_max_tokens = payload.get("max_tokens", 0)
 
+        t0 = time.time()
         with self.client.post(
             ACTIVE_MODEL["endpoint"],
             json=payload,
@@ -234,6 +255,7 @@ class MultiModelUser(HttpUser):
             name=f"{ACTIVE_MODEL['name']} Request",
             catch_response=True,
         ) as response:
+            t1 = time.time()
             if response.status_code != 200:
                 response.failure(
                     f"{ACTIVE_MODEL['name']} failed: {response.status_code} {response.text[:120]}"
@@ -251,6 +273,15 @@ class MultiModelUser(HttpUser):
             completion_tokens = usage.get("completion_tokens", 0)
             total_tokens      = usage.get("total_tokens",      0)
 
+            #--------------
+
+            TOKS = os.getenv("TOKS")
+            with _write_lock:
+                with open(LLM_STATS_FILE(ACTIVE_MODEL['name'], TOKS), "a") as file:
+                    file.write(f"{t0:.3f},{t1:.3f},{prompt_tokens},{completion_tokens},{total_tokens}\n")
+            
+
+            #--------------
             print(
                 f"{ACTIVE_MODEL['name']} | "
                 f"max_tokens={request_max_tokens} | "
